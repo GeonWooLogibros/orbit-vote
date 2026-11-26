@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>ORBIT 컨셉 투표</title>
+<meta name="description" content="ORBIT 화풍 시안 11개와 UI 시안 11개 중 마음에 드는 것을 하나씩 골라 주세요.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-in">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <h1>ORBIT 컨셉 투표</h1>
+        <p class="lead">화풍 시안과 UI 시안을 하나씩 골라 주세요. 투표는 익명이며, 고른 뒤에도 언제든 바꾸거나 취소할 수 있습니다.</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button id="tab-vote" role="tab" aria-selected="true">투표하기</button>
+      <button id="tab-result" role="tab" aria-selected="false">결과 보기</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap"><div id="status" class="notice" role="status" hidden></div></div>
+
+<main id="view-vote">
+  <div class="wrap">
+    <section class="gate" id="gate">
+      <div>
+        <h2>투표 코드 입력</h2>
+        <p>받은 투표 코드 12자리를 넣어 주세요. 코드는 한 사람이 한 표씩만 내게 하는 데에만 쓰이며, 누가 무엇을 골랐는지는 남지 않습니다. 코드 없이도 아래 시안을 둘러볼 수 있습니다.</p>
+      </div>
+      <form id="code-form">
+        <input id="code-input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="예: K7QM-P2XA-HB3N" maxlength="18" aria-label="투표 코드">
+        <button class="btn" id="code-go" type="submit">시작하기</button>
+      </form>
+      <div class="err" id="code-err" hidden></div>
+    </section>
+
+    <section class="me" id="me" hidden>
+      <div class="me-code">투표 코드 <code id="who-code"></code><button class="linkbtn" id="switch-code" type="button">다른 코드로 바꾸기</button></div>
+      <div class="me-picks">
+        <div class="pick"><span>화풍</span><b id="pick-a">아직 고르지 않음</b></div>
+        <div class="pick"><span>UI</span><b id="pick-b">아직 고르지 않음</b></div>
+      </div>
+      <p class="hint">시안 아래의 <b>이 시안 고르기</b>를 누르면 바로 저장됩니다. 다른 시안을 누르면 선택이 바뀝니다.</p>
+    </section>
+
+    <nav class="jump" aria-label="투표 구역">
+      <a href="#sec-art">A. 화풍 시안 <span>11개</span></a>
+      <a href="#sec-ui">B. UI 시안 <span>11개</span></a>
+    </nav>
+
+    <section class="ballot" id="sec-art">
+      <div class="sec-head">
+        <h2><span class="tag">A</span>화풍 시안</h2>
+        <p>게임 전체의 그림 분위기입니다. 같은 세 장면(우주선 안, 우주 비행, 농장 행성 수확)을 시안마다 다르게 그렸습니다.</p>
+      </div>
+      <div class="grid" id="grid-art"></div>
+    </section>
+
+    <section class="ballot" id="sec-ui">
+      <div class="sec-head">
+        <h2><span class="tag">B</span>UI 시안</h2>
+        <p>버튼, 판, 글자 같은 화면 장치의 모양입니다. 같은 세 장면 위에 시안마다 다른 UI를 얹었습니다.</p>
+      </div>
+      <div class="grid" id="grid-ui"></div>
+    </section>
+  </div>
+</main>
+
+<main id="view-result" hidden>
+  <div class="wrap">
+    <div class="res-top">
+      <div class="stat"><b id="st-voters">0</b><span>투표한 사람</span></div>
+      <div class="stat"><b id="st-a">0</b><span>화풍 표</span></div>
+      <div class="stat"><b id="st-b">0</b><span>UI 표</span></div>
+      <button class="btn ghost" id="refresh" type="button">새로고침</button>
+    </div>
+    <section class="res-sec">
+      <h2><span class="tag">A</span>화풍 시안</h2>
+      <ol class="ranks" id="ranks-art"></ol>
+    </section>
+    <section class="res-sec">
+      <h2><span class="tag">B</span>UI 시안</h2>
+      <ol class="ranks" id="ranks-ui"></ol>
+    </section>
+  </div>
+</main>
+
+<footer class="foot"><div class="wrap">시안 평균 점수는 내부 비평가들이 매긴 점수(10점 만점)이며, 투표 결과와는 따로 계산됩니다.</div></footer>
+
+<dialog id="dlg" aria-label="크게 보기">
+  <img id="dlg-img" alt="">
+  <div class="dlg-bar"><span id="dlg-cap"></span><button class="btn ghost" id="dlg-close" type="button">닫기</button></div>
+</dialog>
+
+<script>
+const OPTIONS = __OPTIONS__;
+const SECTIONS = [
+  { key: "a", list: OPTIONS.art, grid: "grid-art", ranks: "ranks-art", label: "화풍" },
+  { key: "b", list: OPTIONS.ui, grid: "grid-ui", ranks: "ranks-ui", label: "UI" },
+];
+const SCENES = [["planet", "농장 행성 수확"], ["interior", "우주선 안"], ["exterior", "우주 비행"]];
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+const CODE_KEY = "orbit-vote:code";
+
+// ── Firestore REST ──
+// 보안 규칙은 game-projects/gardener-replaced/firestore.rules의 ORBIT 부분에 있다.
+const PROJECT = "autofarm-station";
+const API_KEY = "AIzaSyBRFowkjGME7XMab-YWqwMb6eT0QYLz730";
+const DOC_ROOT = `projects/${PROJECT}/databases/(default)/documents`;
+const API = "https://firestore.googleapis.com/v1/";
+
+function enc(v) {
+  if (typeof v === "string") return { stringValue: v };
+  if (typeof v === "number") return { integerValue: String(v) };
+  return { nullValue: null };
+}
+function encFields(o) { const f = {}; for (const k in o) f[k] = enc(o[k]); return f; }
+function dec(v) {
+  if ("stringValue" in v) return v.stringValue;
+  if ("integerValue" in v) return Number(v.integerValue);
+  if ("timestampValue" in v) return v.timestampValue;
+  return null;
+}
+function decFields(f) { const o = {}; for (const k in f) o[k] = dec(f[k]); return o; }
+
+async function getDoc(path) {
+  const r = await fetch(`${API}${DOC_ROOT}/${path}?key=${API_KEY}`);
+  if (r.status === 404 || r.status === 403) return null;
+  if (!r.ok) throw new Error("http " + r.status);
+  const j = await r.json();
+  return decFields(j.fields || {});
+}
+async function listBallots() {
+  const out = [];
+  let token = "";
+  for (let i = 0; i < 20; i++) {
+    const r = await fetch(`${API}${DOC_ROOT}/orbitBallots?pageSize=300&key=${API_KEY}${token ? "&pageToken=" + encodeURIComponent(token) : ""}`);
+    if (!r.ok) throw new Error("http " + r.status);
+    const j = await r.json();
+    (j.documents || []).forEach((d) => out.push(decFields(d.fields || {})));
+    if (!j.nextPageToken) break;
+    token = j.nextPageToken;
+  }
+  return out;
+}
+async function commit(writes) {
+  const r = await fetch(`${API}${DOC_ROOT}:commit?key=${API_KEY}`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ writes }),
+  });
+  if (!r.ok) { const e = new Error("http " + r.status); e.status = r.status; throw e; }
+}
+const docName = (path) => `${DOC_ROOT}/${path}`;
+// 코드가 유효하면 규칙이 읽기를 허용해 404(문서 없음)가, 무효하면 403이 온다.
+async function checkCode(hh) {
+  const r = await fetch(`${API}${DOC_ROOT}/orbitCodes/${hh}?key=${API_KEY}`);
+  if (r.status === 404 || r.ok) return true;
+  if (r.status === 403) return false;
+  throw new Error("http " + r.status);
+}
+
+// ── 투표 코드 ──
+function normCode(s) { return String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+function showCode(c) { return c.length === 12 ? [c.slice(0, 4), c.slice(4, 8), c.slice(8)].join("-") : c; }
+async function hashCode(c) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("orbit-vote:v1:" + c));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function newNonce() { const a = new Uint8Array(16); crypto.getRandomValues(a); return [...a].map((b) => b.toString(16).padStart(2, "0")).join(""); }
+
+// ── 상태 ──
+let code = null, h = null, picks = { a: "", b: "" }, ballots = null, busy = false;
+function showStatus(text, warn) { const el = $("status"); el.textContent = text || ""; el.className = "notice" + (warn ? " warn" : ""); el.hidden = !text; }
+const findOpt = (sec, id) => sec.list.find((o) => o.id === id);
+
+// ── 시안 카드 ──
+function buildGrids() {
+  SECTIONS.forEach((sec) => {
+    const grid = $(sec.grid);
+    grid.textContent = "";
+    sec.list.forEach((o, i) => {
+      const card = document.createElement("article");
+      card.className = "card"; card.id = "card-" + o.id;
+      card.innerHTML = `
+        <div class="shots">
+          <button type="button" class="shot main"><img loading="lazy" alt=""><span class="cap"></span></button>
+          <button type="button" class="shot"><img loading="lazy" alt=""><span class="cap"></span></button>
+          <button type="button" class="shot"><img loading="lazy" alt=""><span class="cap"></span></button>
+        </div>
+        <div class="body">
+          <div class="title-row"><span class="no"></span><h3 class="title"></h3><span class="mine" hidden>내 선택</span></div>
+          <p class="desc"></p>
+          <div class="foot-row">
+            <span class="score"></span>
+            <button type="button" class="btn pickbtn"></button>
+          </div>
+        </div>`;
+      card.querySelectorAll(".shot").forEach((b, k) => {
+        const [scene, cap] = SCENES[k];
+        const img = b.querySelector("img");
+        img.src = `img/${o.id}-${scene}.jpg`;
+        img.alt = `${o.name} ${cap} 장면`;
+        b.querySelector(".cap").textContent = cap;
+        b.addEventListener("click", () => openShot(img.src, `${o.name} · ${cap}`));
+      });
+      card.querySelector(".no").textContent = sec.key.toUpperCase() + String(i + 1).padStart(2, "0");
+      card.querySelector(".title").textContent = o.name;
+      card.querySelector(".desc").textContent = o.desc;
+      card.querySelector(".score").textContent = "내부 평가 평균 " + o.avg.toFixed(1);
+      card.querySelector(".pickbtn").addEventListener("click", () => {
+        if (!code) { $("code-input").focus(); $("gate").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+        const next = { ...picks };
+        next[sec.key] = picks[sec.key] === o.id ? "" : o.id;
+        save(next, sec, o);
+      });
+      grid.appendChild(card);
+    });
+  });
+}
+
+function paintCards() {
+  SECTIONS.forEach((sec) => {
+    sec.list.forEach((o) => {
+      const card = $("card-" + o.id);
+      const mine = picks[sec.key] === o.id;
+      card.classList.toggle("on", mine);
+      card.querySelector(".mine").hidden = !mine;
+      const b = card.querySelector(".pickbtn");
+      b.disabled = busy;
+      b.classList.toggle("ghost", mine);
+      b.textContent = !code ? "코드를 넣고 고르기" : mine ? "선택 취소하기" : "이 시안 고르기";
+      b.setAttribute("aria-pressed", mine ? "true" : "false");
+    });
+  });
+}
+
+function render() {
+  $("gate").hidden = !!code;
+  $("me").hidden = !code;
+  if (code) $("who-code").textContent = showCode(code);
+  SECTIONS.forEach((sec) => {
+    const o = findOpt(sec, picks[sec.key]);
+    const el = $("pick-" + sec.key);
+    el.textContent = o ? o.name : "아직 고르지 않음";
+    el.classList.toggle("none", !o);
+  });
+  paintCards();
+}
+
+// ── 저장 ──
+// 열쇠의 nonce를 바꾸고 같은 nonce로 투표를 쓴다. 둘 다 비면 투표 문서를 지운다.
+async function save(next, sec, o) {
+  if (busy) return;
+  busy = true; paintCards();
+  const nonce = newNonce();
+  const writes = [{ update: { name: docName("orbitKeys/" + h), fields: encFields({ code, nonce }) } }];
+  if (!next.a && !next.b) writes.push({ delete: docName("orbitBallots/" + h) });
+  else writes.push({
+    update: { name: docName("orbitBallots/" + h), fields: encFields({ v: 1, a: next.a, b: next.b, nonce }) },
+    updateTransforms: [{ fieldPath: "at", setToServerValue: "REQUEST_TIME" }],
+  });
+  try {
+    await commit(writes);
+    picks = next;
+    ballots = null;
+    showStatus(next[sec.key]
+      ? `${sec.label}에서 '${o.name}' 시안을 골랐습니다. 다른 시안을 누르면 바뀝니다.`
+      : `${sec.label} 선택을 취소했습니다.`, false);
+  } catch (e) {
+    showStatus(e.status >= 400 && e.status < 500
+      ? "저장하지 못했습니다. 코드를 다시 확인해 주세요."
+      : "저장하지 못했습니다. 인터넷 연결을 확인하고 다시 눌러 주세요.", true);
+    await loadMine(true);
+  } finally { busy = false; render(); }
+}
+
+// ── 코드 확인 ──
+async function loadMine(quiet) {
+  try {
+    const b = await getDoc("orbitBallots/" + h);
+    picks = { a: (b && b.a) || "", b: (b && b.b) || "" };
+  } catch (e) { if (!quiet) throw e; }
+}
+async function useCode(raw, quiet) {
+  const c = normCode(raw);
+  const err = $("code-err");
+  err.hidden = true;
+  if (c.length !== 12) { if (!quiet) { err.textContent = "코드는 영문과 숫자 12자리입니다."; err.hidden = false; } return; }
+  $("code-go").disabled = true;
+  try {
+    const hh = await hashCode(c);
+    if (!(await checkCode(hh))) {
+      if (!quiet) { err.textContent = "등록되지 않은 코드입니다. 받은 코드를 다시 확인해 주세요."; err.hidden = false; }
+      else store.del(CODE_KEY);
+      return;
+    }
+    code = c; h = hh; store.set(CODE_KEY, c);
+    await loadMine(false);
+    showStatus("", false);
+    render();
+  } catch (e) {
+    code = null; h = null;
+    err.textContent = "서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."; err.hidden = false;
+  } finally { $("code-go").disabled = false; }
+}
+$("code-form").addEventListener("submit", (ev) => { ev.preventDefault(); useCode($("code-input").value, false); });
+$("switch-code").addEventListener("click", () => {
+  code = null; h = null; picks = { a: "", b: "" };
+  store.del(CODE_KEY); $("code-input").value = ""; showStatus("", false);
+  render(); $("code-input").focus();
+});
+
+// ── 크게 보기 ──
+function openShot(src, cap) {
+  const d = $("dlg");
+  $("dlg-img").src = src; $("dlg-img").alt = cap; $("dlg-cap").textContent = cap;
+  if (d.showModal) d.showModal(); else window.open(src, "_blank");
+}
+$("dlg-close").addEventListener("click", () => $("dlg").close());
+$("dlg").addEventListener("click", (ev) => { if (ev.target === $("dlg") || ev.target === $("dlg-img")) $("dlg").close(); });
+
+// ── 탭 ──
+function setTab(which) {
+  $("tab-vote").setAttribute("aria-selected", which === "vote");
+  $("tab-result").setAttribute("aria-selected", which === "result");
+  $("view-vote").hidden = which !== "vote";
+  $("view-result").hidden = which !== "result";
+  if (which === "result" && location.hash !== "#results") history.replaceState(null, "", "#results");
+  if (which === "vote" && location.hash === "#results") history.replaceState(null, "", location.pathname + location.search);
+  paintResults();
+}
+$("tab-vote").addEventListener("click", () => setTab("vote"));
+$("tab-result").addEventListener("click", () => setTab("result"));
+$("refresh").addEventListener("click", () => { ballots = null; paintResults(); });
+window.addEventListener("hashchange", () => { if (location.hash === "#results") setTab("result"); });
+
+// ── 결과 ──
+let loading = false;
+async function paintResults() {
+  if ($("view-result").hidden) return;
+  if (ballots === null) {
+    if (loading) return;
+    loading = true; $("refresh").disabled = true;
+    SECTIONS.forEach((sec) => { $(sec.ranks).innerHTML = '<p class="empty">결과를 불러오는 중입니다.</p>'; });
+    try { ballots = await listBallots(); }
+    catch (e) { SECTIONS.forEach((sec) => { $(sec.ranks).innerHTML = '<p class="empty">결과를 불러오지 못했습니다. 새로고침을 눌러 주세요.</p>'; }); return; }
+    finally { loading = false; $("refresh").disabled = false; }
+  }
+  $("st-voters").textContent = ballots.length;
+  SECTIONS.forEach((sec) => {
+    const count = {};
+    sec.list.forEach((o) => { count[o.id] = 0; });
+    let total = 0;
+    ballots.forEach((b) => { const v = b && b[sec.key]; if (v && v in count) { count[v]++; total++; } });
+    $("st-" + sec.key).textContent = total;
+    const rows = sec.list.map((o, i) => ({ o, i, n: count[o.id] })).sort((x, y) => y.n - x.n || x.i - y.i);
+    const max = Math.max(1, ...rows.map((r) => r.n));
+    const list = $(sec.ranks);
+    list.textContent = "";
+    if (!total) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "아직 들어온 표가 없습니다. 첫 표가 들어오면 여기에 순위가 나타납니다."; list.appendChild(p); }
+    let prev = null, rank = 0;
+    rows.forEach((r, i) => {
+      if (r.n !== prev) { rank = i + 1; prev = r.n; }
+      const li = document.createElement("li");
+      li.className = "rank" + (total && r.n === rows[0].n && r.n > 0 ? " top" : "");
+      li.innerHTML = `<span class="rank-no"></span><img class="rank-thumb" alt="" loading="lazy"><div class="rank-info"><div class="rank-name"><b></b><span class="mine" hidden>내 선택</span></div><div class="track"><i></i></div></div><div class="rank-n"><b></b><span></span></div>`;
+      li.querySelector(".rank-no").textContent = total && r.n ? rank : "-";
+      li.querySelector(".rank-thumb").src = `img/${r.o.id}-planet.jpg`;
+      li.querySelector(".rank-name b").textContent = r.o.name;
+      li.querySelector(".mine").hidden = picks[sec.key] !== r.o.id;
+      li.querySelector(".track i").style.width = (r.n / max * 100) + "%";
+      li.querySelector(".rank-n b").textContent = r.n + "표";
+      li.querySelector(".rank-n span").textContent = total ? Math.round(r.n / total * 100) + "%" : "0%";
+      list.appendChild(li);
+    });
+  });
+}
+
+// ── 시작 ──
+buildGrids();
+render();
+if (location.hash === "#results") setTab("result");
+const saved = store.get(CODE_KEY);
+if (saved) useCode(saved, true);
+</script>
+</body>
+</html>
